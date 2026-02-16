@@ -1,2 +1,2 @@
-# linda_server
+# Linda Elixir Server
 Tuple space linda-inspired server
