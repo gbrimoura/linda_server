@@ -29,25 +29,28 @@ public:
                             // in, in, out gravar dados, ação
             std::transform( v.begin(), v.end(), v.begin(), ::toupper ); 
             return v; 
-        };
+        }; //retorna a string com as letras maiusculas
         services[2] = []( std::string v ) { 
             std::reverse( v.begin(), v.end() ); 
             return v; 
-        };
+        }; //retorna a string de trás para frente
         services[3] = []( std::string v ) { 
             return std::to_string( v.length() ); 
-        };
+        }; //retorna o tamanho da string
     }
     // escrita
     void wr( std::string k, std::string v ) {
-        std::lock_guard<std::mutex> lock( mtx );
+        std::lock_guard<std::mutex> lock( mtx ); // bloqueia outras threads e libera ao sair do escopo
         space[k].push_back({v});
         cv.notify_all(); // Notifica threads bloqueadas 
     }
     // leitura
     std::string rd( std::string k ) {
-        std::unique_lock<std::mutex> lock( mtx );
-        cv.wait( lock, [&] { return !space[k].empty(); } ); // Bloqueio sem busy-waiting 
+        std::unique_lock<std::mutex> lock( mtx ); // bloqueia outras threads
+        cv.wait( lock, [&] { return !space[k].empty(); } ); // dorme até ser notificado - 
+                                                            // se for sua chave - tranca o mutex e realiza a operação 
+                                                            // libera ao sair do escopo
+                                                            // Bloqueio sem busy-waiting( consumir CPU desnecessariamente enquanto espera )
         return space[k].front().value;
     }
     // leitura e remoção
@@ -77,6 +80,7 @@ public:
         // 3. Executa o serviço e insere o resultado 
         auto func = services[svc_id];
         lock.unlock(); // Destrava para não bloquear o servidor durante o processamento 
+                       // desbloqueio manual, sem esperar sair do escopo  
         
         std::string v_out = func(v_in);
         wr( k_out, v_out ); 
